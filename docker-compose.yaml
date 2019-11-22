@@ -13,7 +13,7 @@ version: "2"
 services:
   transmission:
     image: haugene/transmission-openvpn
-    container_name: transmission-openvpn
+    container_name: transmission
     restart: always
     ports:
       - "9091:9091"
@@ -31,8 +31,10 @@ services:
       - WEBPROXY_ENABLED=true
       - WEBPROXY_PORT=8888
       - LOCAL_NETWORK=192.168.0.0/16,172.17.0.0/24
+      - TRANSMISSION_WEB_UI=combustion
     volumes:
       - ${DOWNLOAD_PATH}:/data
+      - ${CONFIG_ROOT}/transmission/:/config
       - /etc/localtime:/etc/localtime:ro
     cap_add:
       - NET_ADMIN
@@ -110,19 +112,37 @@ services:
        - HEIGHT=720
        - USER_ID=${PUID}
        - GROUP_ID=${PGID}
+       - UMASK=0022
     network_mode: host
     ports:
        - "3389:3389"
        - "8787:8787"
     volumes:
-       - ${DOWNLOAD_PATH}:/media:rw
+       - ${DOWNLOAD_PATH}/completed:/input:rw
+       - ${MEDIA_PATH}:/output:rw
        - ${CONFIG_ROOT}/filebot:/config:rw
+  picard:
+    image: mikenye/picard
+    container_name: picard
+    environment:
+      - USER_ID=${PUID}
+      - GROUP_ID=${PGID}
+      - UMASK=0022
+    network_mode: host
+    ports:
+      - 5800:5800
+    volumes:
+      - ${CONFIG_ROOT}/picard:/config:rw
+      - ${DOWNLOAD_PATH}/completed:/storage:rw
+      - ${AUDIO_PATH}:/output:rw
+      - /etc/localtime:/etc/localtime:ro 
+    restart: unless-stopped
   musicbrainz:
     image: linuxserver/musicbrainz
     container_name: musicbrainz
     environment:
-      - PUID=1010
-      - PGID=1010
+      - PUID=${PUID}
+      - PGID=${PGID}
       - BRAINZCODE=ysEm5FZWlIfNBiD0oR6BhAimqQTpAJwXdnaqLFm9
       - WEBADDRESS=192.168.1.32
     network_mode: host
